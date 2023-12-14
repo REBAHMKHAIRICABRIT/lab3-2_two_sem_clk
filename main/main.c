@@ -51,8 +51,11 @@ void vTaskInspector(void *pvParameters);
 
 /* Datas */
 int Table[TABLE_SIZE];
-SemaphoreHandle_t xSemIncTab;
-SemaphoreHandle_t xSemDecTab;
+// SemaphoreHandle_t xSemIncTab;
+// SemaphoreHandle_t xSemDecTab;
+TaskHandle_t xHandle2 = NULL;
+TaskHandle_t xHandle1 = NULL;
+
 /* Main function */
 void app_main(void) {
 
@@ -60,16 +63,18 @@ void app_main(void) {
       memset(Table, 0, TABLE_SIZE*sizeof(int));
 
       /* Create semaphore */
-      xSemDecTab = xSemaphoreCreateBinary();
-      xSemIncTab = xSemaphoreCreateBinary();
+      // xSemDecTab = xSemaphoreCreateBinary();
+      // xSemIncTab = xSemaphoreCreateBinary();
+     // xTaskCreate(vHandlerTask, "Handler", 1000, NULL, 3, &xHandlerTask);
+      
       /* Stop scheduler */
       vTaskSuspendAll();
 
       /* Create Tasks */
       xTaskCreatePinnedToCore(      vTaskTimer,"Task 1", STACK_SIZE,(void*)"Task 1",TIMER_TASK_PRIORITY, NULL,CORE_0);  
-      xTaskCreatePinnedToCore(      vTaskIncTable,"Task 2",STACK_SIZE,(void*)"Task 2",INC_TABLE_TASK_PRIORITY,NULL,CORE_0);  
-      xTaskCreatePinnedToCore(      vTaskDecTable,"Task 3",STACK_SIZE,(void*)"Task 3",DEC_TABLE_TASK_PRIORITY,NULL,CORE_1);  
-     // xTaskCreatePinnedToCore(      vTaskInspector,"Task 3",STACK_SIZE,(void*)"Task 3",INSPECTOR_TASK_PRIORITY,NULL,CORE_1);  
+      xTaskCreatePinnedToCore(      vTaskIncTable,"Task 2",STACK_SIZE,(void*)"Task 2",INC_TABLE_TASK_PRIORITY,&xHandle1,CORE_0);  
+      xTaskCreatePinnedToCore(      vTaskDecTable,"Task 3",STACK_SIZE,(void*)"Task 3",DEC_TABLE_TASK_PRIORITY,&xHandle2,CORE_1);  
+//      // xTaskCreatePinnedToCore(      vTaskInspector,"Task 3",STACK_SIZE,(void*)"Task 3",INSPECTOR_TASK_PRIORITY,NULL,CORE_1);  
 
       /* Continue scheduler */
       xTaskResumeAll();
@@ -92,10 +97,13 @@ void vTaskTimer(void *pvParameters) {
               DISPLAY ("Start of Timer") ;
                vTaskDelayUntil(&xLastWakeTime, xDelay250ms);
                COMPUTE_IN_TICK (2) ;
-           DISPLAY ("Task Timer : given semaphore") ;
-           xSemaphoreGive ( xSemDecTab ) ;
-           xSemaphoreGive ( xSemIncTab ) ;
-         
+           DISPLAY ("Task Timer : given task") ;
+      //      xSemaphoreGive ( xSemDecTab ) ;
+      //      xSemaphoreGive ( xSemIncTab ) ;
+      xTaskNotifyGive(xHandle1);
+      xTaskNotifyGive(xHandle1);
+
+      xTaskNotifyGive(xHandle2);
             }
       // for(;;){
       //       DISPLAY ("Start of Timer") ;
@@ -110,10 +118,12 @@ void vTaskTimer(void *pvParameters) {
 }
 
 void vTaskIncTable(void *pvParameters) {
+            int pending_cpt=0;
       int ActivationNumber = 0;
       for (;;) {
-            xSemaphoreTake (xSemIncTab , portMAX_DELAY);
-            DISPLAY ("Start of IncTable") ;
+           pending_cpt= ulTaskNotifyTake (pdFALSE , portMAX_DELAY);
+       printf("Pending event counter : %d \n", pending_cpt);
+                   DISPLAY ("Start of IncTable") ;
             if (ActivationNumber == 0) {
                   for (int index=0; index < TABLE_SIZE; index++) {
                         Table[index] = Table[index]+4;
@@ -128,9 +138,14 @@ void vTaskIncTable(void *pvParameters) {
 }
 
 void vTaskDecTable(void *pvParameters) {
+      int pending_cpt=0;
       for (;;) {
-            xSemaphoreTake (xSemDecTab , portMAX_DELAY);
+           pending_cpt= ulTaskNotifyTake (pdFALSE , portMAX_DELAY);
+         DISPLAY ("Pending event counter") ;
+         printf("Pending event counter : %d \n", pending_cpt);
             DISPLAY ("Start of DecTable") ;
+            
+
             for (int index=0; index < TABLE_SIZE; index++) {
                   Table[index] = Table[index]-1;
             }

@@ -93,6 +93,8 @@ void vTaskTimer(void *pvParameters) {
       pcTaskName = (char *)pvParameters;
       xLastWakeTime = xTaskGetTickCount();
 
+      int count = 0;
+
       for(;;){
               DISPLAY ("Start of Timer") ;
                vTaskDelayUntil(&xLastWakeTime, xDelay250ms);
@@ -100,14 +102,16 @@ void vTaskTimer(void *pvParameters) {
            DISPLAY ("Task Timer : given task") ;
       //      xSemaphoreGive ( xSemDecTab ) ;
       //      xSemaphoreGive ( xSemIncTab ) ;
-      xTaskNotifyGive(xHandle1);
-      xTaskNotifyGive(xHandle1);
+      xTaskNotify(xHandle1, (0x01 << count), eSetBits);
+      xTaskNotify(xHandle1, (0x02 << count), eSetBits);
 
-      xTaskNotifyGive(xHandle2);
+      xTaskNotify(xHandle2, (0x01 << count), eSetValueWithoutOverwrite);
+      count += 1;
+
             }
       // for(;;){
       //       DISPLAY ("Start of Timer") ;
-      //       vTaskDelay (pdMS_TO_TICKS (250));
+      //       vTaskDelay (pdMSgO_TICKS (250));
       //       COMPUTE_IN_TICK (2) ;
       //       DISPLAY ("Task Timer : given sem") ;
       //       xSemaphoreGive ( xSemDecTab ) ;
@@ -121,7 +125,8 @@ void vTaskIncTable(void *pvParameters) {
             int pending_cpt=0;
       int ActivationNumber = 0;
       for (;;) {
-           pending_cpt= ulTaskNotifyTake (pdFALSE , portMAX_DELAY);
+      //      pending_cpt= ulTaskNotifyTake (pdFALSE , portMAX_DELAY);
+      pending_cpt == xTaskNotifyWait(0x01, );
        printf("Pending event counter : %d \n", pending_cpt);
                    DISPLAY ("Start of IncTable") ;
             if (ActivationNumber == 0) {
